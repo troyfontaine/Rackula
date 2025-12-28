@@ -37,9 +37,15 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: .
+          file: deploy/Dockerfile
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            VITE_ENV=development
+            VITE_UMAMI_ENABLED=true
+            VITE_UMAMI_SCRIPT_URL=https://t.racku.la/script.js
+            VITE_UMAMI_WEBSITE_ID=${{ vars.UMAMI_DEV_WEBSITE_ID }}
 
   deploy:
     needs: build-and-deploy
