@@ -19,7 +19,6 @@
   class="sidebar sidebar-{side}"
   class:collapsed
   aria-label={title ?? "Sidebar"}
-  aria-expanded={!collapsed}
 >
   {#if title}
     <div class="sidebar-header">

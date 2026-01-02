@@ -124,7 +124,7 @@
   }, 150);
 
   // File import ref
-  let fileInputRef: HTMLInputElement;
+  let fileInputRef = $state<HTMLInputElement | null>(null);
 
   /**
    * Device section definition for collapsible groups
@@ -490,7 +490,8 @@
                       {/if}
                     </span>
                   {:else}
-                    <span class="section-count">({section.devices.length})</span>
+                    <span class="section-count">({section.devices.length})</span
+                    >
                   {/if}
                 </Accordion.Trigger>
               </Accordion.Header>

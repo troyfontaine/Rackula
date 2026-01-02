@@ -4,6 +4,7 @@
   Feature parity with EditPanel's rack editing section
 -->
 <script lang="ts">
+  import { untrack } from "svelte";
   import SegmentedControl from "./SegmentedControl.svelte";
   import ConfirmDialog from "./ConfirmDialog.svelte";
   import { getLayoutStore } from "$lib/stores/layout.svelte";
@@ -30,9 +31,10 @@
   const RACK_ID = "rack-0";
 
   // Local state for form fields (synced from rack prop)
-  let rackName = $state(rack.name);
-  let rackHeight = $state(rack.height);
-  let rackNotes = $state(rack.notes ?? "");
+  // Using untrack() to capture initial values - the $effect below handles reactive updates
+  let rackName = $state(untrack(() => rack.name));
+  let rackHeight = $state(untrack(() => rack.height));
+  let rackNotes = $state(untrack(() => rack.notes ?? ""));
   let resizeError = $state<string | null>(null);
 
   // State for clear rack confirmation

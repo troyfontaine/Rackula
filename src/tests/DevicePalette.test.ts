@@ -3,6 +3,7 @@ import { render, screen, fireEvent, waitFor } from "@testing-library/svelte";
 import DevicePalette from "$lib/components/DevicePalette.svelte";
 import DevicePaletteItem from "$lib/components/DevicePaletteItem.svelte";
 import { getLayoutStore, resetLayoutStore } from "$lib/stores/layout.svelte";
+import { resetUIStore } from "$lib/stores/ui.svelte";
 import { CATEGORY_COLOURS } from "$lib/types/constants";
 
 // Mock localStorage for grouping mode tests
@@ -27,8 +28,9 @@ Object.defineProperty(globalThis, "localStorage", {
 
 describe("DevicePalette Component", () => {
   beforeEach(() => {
-    resetLayoutStore();
     localStorageMock.clear();
+    resetLayoutStore();
+    resetUIStore();
     vi.clearAllMocks();
   });
 
@@ -160,7 +162,7 @@ describe("DevicePalette Component", () => {
     it("has Add Device button", () => {
       render(DevicePalette);
 
-      const addButton = screen.getByRole("button", { name: /add device/i });
+      const addButton = screen.getByTestId("btn-add-device");
       expect(addButton).toBeInTheDocument();
     });
 
@@ -169,7 +171,7 @@ describe("DevicePalette Component", () => {
 
       render(DevicePalette, { props: { onadddevice: handleAdd } });
 
-      const addButton = screen.getByRole("button", { name: /add device/i });
+      const addButton = screen.getByTestId("btn-add-device");
       await fireEvent.click(addButton);
 
       expect(handleAdd).toHaveBeenCalledTimes(1);
@@ -180,7 +182,7 @@ describe("DevicePalette Component", () => {
     it("renders import button", () => {
       render(DevicePalette);
 
-      const importButton = screen.getByRole("button", { name: /import/i });
+      const importButton = screen.getByTestId("btn-import-devices");
       expect(importButton).toBeInTheDocument();
     });
 
@@ -208,7 +210,7 @@ describe("DevicePalette Component", () => {
     it("clicking import button triggers file input", async () => {
       const { container } = render(DevicePalette);
 
-      const importButton = screen.getByRole("button", { name: /import/i });
+      const importButton = screen.getByTestId("btn-import-devices");
       const fileInput = container.querySelector(
         'input[type="file"]',
       ) as HTMLInputElement;
@@ -224,7 +226,7 @@ describe("DevicePalette Component", () => {
     it("import button and file input are properly wired together", async () => {
       const { container } = render(DevicePalette);
 
-      const importButton = screen.getByRole("button", { name: /import/i });
+      const importButton = screen.getByTestId("btn-import-devices");
       const fileInput = container.querySelector(
         'input[type="file"]',
       ) as HTMLInputElement;
@@ -311,15 +313,15 @@ describe("DevicePalette Exclusive Accordion", () => {
     it("Ubiquiti section shows correct device count", () => {
       render(DevicePalette);
 
-      // Ubiquiti has 92 devices
-      expect(screen.getByText("(92)")).toBeInTheDocument();
+      // Ubiquiti has 109 devices
+      expect(screen.getByText("(109)")).toBeInTheDocument();
     });
 
     it("MikroTik section shows correct device count", () => {
       render(DevicePalette);
 
-      // MikroTik has 57 devices
-      expect(screen.getByText("(57)")).toBeInTheDocument();
+      // MikroTik has 58 devices
+      expect(screen.getByText("(58)")).toBeInTheDocument();
     });
   });
 
