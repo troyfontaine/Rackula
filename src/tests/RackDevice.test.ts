@@ -290,6 +290,33 @@ describe("RackDevice SVG Component", () => {
       // Should not have triggered drag (movement was < 3px)
       expect(handleDragStart).not.toHaveBeenCalled();
     });
+
+    it("triggers drag when pointer moves at or beyond threshold (3px)", async () => {
+      const handleDragStart = vi.fn();
+
+      const { container } = render(RackDevice, {
+        props: { ...defaultProps, ondragstart: handleDragStart },
+      });
+
+      const group = container.querySelector("g.rack-device");
+
+      // Movement of exactly 3px should trigger drag
+      await fireEvent.pointerDown(group!, {
+        isPrimary: true,
+        pointerId: 1,
+        clientX: 100,
+        clientY: 100,
+      });
+      await fireEvent.pointerMove(group!, {
+        isPrimary: true,
+        pointerId: 1,
+        clientX: 103, // 3px horizontal movement
+        clientY: 100,
+      });
+
+      // Should have triggered drag (movement was >= 3px)
+      expect(handleDragStart).toHaveBeenCalledTimes(1);
+    });
   });
 
   describe("Accessibility", () => {
@@ -744,8 +771,8 @@ describe("RackDevice SVG Component", () => {
       );
 
       expect(portIndicatorsIndex).toBeGreaterThan(-1);
-      // Port indicators should be near the end of the children (after device rect, selection, content)
-      expect(portIndicatorsIndex).toBeGreaterThan(0);
+      // Port indicators should be the last child (rendered on top)
+      expect(portIndicatorsIndex).toBe(children.length - 1);
     });
   });
 });

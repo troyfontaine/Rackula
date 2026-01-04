@@ -259,11 +259,14 @@
     if (event.pointerId !== activePointerId) return;
 
     // Release pointer capture (may not exist in test environments)
+    // Exception is safe to ignore: releasePointerCapture throws if the pointer
+    // was already released (e.g., by pointercancel or browser gesture handling).
+    // This is a normal race condition, not an error condition.
     if (groupElement?.releasePointerCapture && activePointerId !== null) {
       try {
         groupElement.releasePointerCapture(activePointerId);
       } catch {
-        // Ignore if capture was already released
+        // Already released - safe to ignore
       }
     }
 
@@ -316,10 +319,6 @@
 
   // Long-press handler for mobile (triggers selection + details)
   function handleLongPress() {
-    console.log("[RackDevice] Long-press triggered:", {
-      slug: device.slug,
-      position,
-    });
     onselect?.(
       new CustomEvent("select", { detail: { slug: device.slug, position } }),
     );
@@ -328,12 +327,6 @@
   // Set up long-press gesture on mobile (reactive to viewport changes)
   $effect(() => {
     if (viewportStore.isMobile && groupElement) {
-      console.log(
-        "[RackDevice] Setting up long-press for device:",
-        device.slug,
-        "isMobile:",
-        viewportStore.isMobile,
-      );
       const cleanup = useLongPress(groupElement, handleLongPress);
       return cleanup;
     }

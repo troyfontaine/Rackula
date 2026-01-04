@@ -36,6 +36,9 @@
   // Synthetic rack ID for single-rack mode
   const RACK_ID = "rack-0";
 
+  // Debounce delay to prevent click events firing immediately after drag ends
+  const DRAG_CLICK_DEBOUNCE_MS = 100;
+
   interface Props {
     rack: RackType;
     deviceLibrary: DeviceType[];
@@ -284,9 +287,8 @@
       dropPreview = null;
       _draggingDeviceIndex = null;
 
-      // Determine if this is an internal move
+      // Determine if this is an internal move (cross-rack is simply !isInternalMove)
       const isInternalMove = sourceRackId === RACK_ID;
-      const isCrossRackMove = sourceRackId !== RACK_ID;
 
       // Calculate target position
       const svgCoords = screenToSVG(svgElement, clientX, clientY);
@@ -323,7 +325,7 @@
               },
             }),
           );
-        } else if (isCrossRackMove && deviceIndex !== undefined) {
+        } else if (!isInternalMove && deviceIndex !== undefined) {
           // Cross-rack move
           ondevicemoverack?.(
             new CustomEvent("devicemoverack", {
@@ -345,7 +347,7 @@
       justFinishedDrag = true;
       setTimeout(() => {
         justFinishedDrag = false;
-      }, 100);
+      }, DRAG_CLICK_DEBOUNCE_MS);
     }
 
     // Add listeners
@@ -527,7 +529,7 @@
     // Reset the flag after a short delay (in case no click event follows)
     setTimeout(() => {
       justFinishedDrag = false;
-    }, 100);
+    }, DRAG_CLICK_DEBOUNCE_MS);
   }
 
   function handleDrop(event: DragEvent) {
