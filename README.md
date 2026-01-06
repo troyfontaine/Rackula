@@ -73,7 +73,7 @@ This project was built using AI-assisted development with Claude. I told it what
 
 ## Acknowledgements
 
-Built for the [r/homelab](https://reddit.com/r/homelab) and [r/selfhosted](https://reddit.com/r/selfhosted) communities. Colors from [Dracula Theme](https://draculatheme.com/). Device data from [NetBox devicetype-library](https://github.com/netbox-community/devicetype-library).
+Built for the [r/homelab](https://reddit.com/r/homelab) and [r/selfhosted](https://reddit.com/r/selfhosted) communities. Colours from [Dracula Theme](https://draculatheme.com/). Device data from [NetBox devicetype-library](https://github.com/netbox-community/devicetype-library).
 
 See [ACKNOWLEDGEMENTS.md](ACKNOWLEDGEMENTS.md) for full credits.
 
