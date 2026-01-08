@@ -1,5 +1,6 @@
 import "@testing-library/jest-dom/vitest";
-import { beforeEach } from "vitest";
+import { cleanup } from "@testing-library/svelte";
+import { afterEach, beforeEach, vi } from "vitest";
 
 // Global test setup for Rackula
 // This file is loaded before all tests via vitest.config.ts setupFiles
@@ -57,4 +58,10 @@ Object.defineProperty(window, "matchMedia", {
     removeEventListener: () => {},
     dispatchEvent: () => true,
   }),
+});
+
+// Global cleanup after each test to prevent memory accumulation
+afterEach(() => {
+  cleanup();
+  vi.restoreAllMocks();
 });
