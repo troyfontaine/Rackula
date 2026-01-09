@@ -2,6 +2,14 @@
   About Panel Component
   Shows app information, keyboard shortcuts, and links
 -->
+<script module>
+  // Build-time constants from vite.config.ts
+  declare const __BUILD_TIME__: string;
+  declare const __COMMIT_HASH__: string;
+  declare const __BRANCH_NAME__: string;
+  declare const __GIT_DIRTY__: boolean;
+</script>
+
 <script lang="ts">
   import { VERSION } from "$lib/version";
   import Dialog from "./Dialog.svelte";
@@ -13,12 +21,6 @@
     formatRelativeTime,
     formatFullTimestamp,
   } from "$lib/utils/buildTime";
-
-  // Build-time constants from vite.config.ts
-  declare const __BUILD_TIME__: string;
-  declare const __COMMIT_HASH__: string;
-  declare const __BRANCH_NAME__: string;
-  declare const __GIT_DIRTY__: boolean;
 
   interface Props {
     open: boolean;
