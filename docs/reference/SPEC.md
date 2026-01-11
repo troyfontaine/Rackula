@@ -25,7 +25,8 @@ Homelabbers planning rack layouts. Desktop browser users for creation/editing, m
 - **ADHD-friendly** — Minimal decision points, visual clarity
 - **Lightweight** — Static frontend, no backend required
 - **Portable** — Layouts saved as self-contained `.Rackula.zip` archives
-- **Single-rack** — One rack per project (simplicity over complexity)
+- **Multi-rack** — Support multiple racks per layout (v0.6.0)
+- **Single-level nesting** — Containers hold devices but cannot be nested
 - **FOSS** — MIT licensed
 
 ### 1.5 Links
@@ -121,6 +122,10 @@ type FormFactor =
 
 // Weight units (NetBox-compatible)
 type WeightUnit = "kg" | "lb";
+
+// Slot positions for half-width devices (v0.5.0)
+type SlotPosition = "left" | "right" | "full";
+type SlotWidth = 1 | 2; // 1 = half-width, 2 = full-width (default)
 ```
 
 ### 3.2 DeviceType (Library Item)
@@ -168,6 +173,34 @@ interface DeviceType {
 
   // Power Device Properties
   va_rating?: number; // VA capacity (e.g., 1500, 3000)
+
+  // Half-Width Support (v0.5.0)
+  slot_width?: SlotWidth; // 1 = half-width, 2 = full-width (default)
+
+  // Container Capability (v0.6.0)
+  slots?: Slot[]; // Presence indicates this is a container
+}
+```
+
+> **Container Identification:** A DeviceType with `slots.length > 0` is a container. No separate boolean flag is needed.
+
+### 3.X Slot (Container Bay Definition)
+
+```typescript
+/**
+ * Slot definition for container devices
+ * A DeviceType with slots[] is a container that can hold child devices
+ */
+interface Slot {
+  id: string; // Unique within this DeviceType (e.g., "bay-1")
+  name?: string; // Display label (e.g., "Left Bay")
+  position: {
+    row: number; // 0-indexed from bottom of container
+    col: number; // 0-indexed from left
+  };
+  width_fraction?: number; // 0.5 = half-width (default: 1.0)
+  height_units?: number; // Slot height in U (default: 1)
+  accepts?: DeviceCategory[]; // Empty = accepts all categories
 }
 ```
 
@@ -177,15 +210,25 @@ interface DeviceType {
 interface PlacedDevice {
   id: string; // UUID for stable reference
   device_type: string; // Reference to DeviceType.slug
-  position: number; // Bottom U position (1-indexed)
+  position: number; // Bottom U position (1-indexed for rack-level)
+  // OR relative position (0-indexed for container children)
   face: DeviceFace;
   name?: string; // Custom instance name
   notes?: string;
   custom_fields?: Record<string, unknown>;
+
+  // Half-Width Support (v0.5.0)
+  slot_position?: SlotPosition; // 'left' | 'right' | 'full' (default: 'full')
+
+  // Container Child (v0.6.0)
+  container_id?: string; // UUID of parent PlacedDevice (if nested)
+  slot_id?: string; // Which slot in parent (Slot.id)
 }
 ```
 
 **Note:** The `id` field is a UUID generated on device placement using `crypto.randomUUID()`. It provides a stable identifier for placement-level image overrides that survives device reordering.
+
+> **Position Semantics:** For rack-level devices, `position` is 1-indexed U position. For container children, `position` is relative to container (0-indexed from bottom).
 
 ### 3.4 Rack
 
@@ -210,13 +253,13 @@ interface Rack {
 
 ```typescript
 interface Layout {
-  version: string; // Schema version (e.g., "0.1.0")
+  version: string; // Schema version (e.g., "1.0.0")
   name: string;
   created: string; // ISO 8601
   modified: string; // ISO 8601
   settings: LayoutSettings;
   device_types: DeviceType[]; // Device type library
-  rack: Rack; // Single rack
+  racks: Rack[]; // Multiple racks (v0.6.0)
 }
 
 interface LayoutSettings {
@@ -229,16 +272,17 @@ interface LayoutSettings {
 
 ### 3.6 Constraints
 
-| Constraint              | Value                |
-| ----------------------- | -------------------- |
-| Min device height       | 0.5U                 |
-| Max device height       | 42U                  |
-| Min rack height         | 1U                   |
-| Max rack height         | 100U                 |
-| Allowed rack widths     | 10", 19"             |
-| Max racks per layout    | 1 (single-rack mode) |
-| Max image size          | 5MB                  |
-| Supported image formats | PNG, JPEG, WebP      |
+| Constraint              | Value           |
+| ----------------------- | --------------- |
+| Min device height       | 0.5U            |
+| Max device height       | 42U             |
+| Min rack height         | 1U              |
+| Max rack height         | 100U            |
+| Allowed rack widths     | 10", 19"        |
+| Max racks per layout    | ∞ (no limit)    |
+| Max container nesting   | 1 level         |
+| Max image size          | 5MB             |
+| Supported image formats | PNG, JPEG, WebP |
 
 ### 3.7 Collision Detection
 
@@ -289,6 +333,32 @@ Both drag-and-drop and keyboard movement use face-aware validation:
 | Keyboard (↑/↓) | Face from `placedDevice.face`      |
 
 The `getDropFeedback()` function passes `targetFace` to `canPlaceDevice()`, ensuring drag-and-drop preview feedback (valid/blocked) matches actual placement behavior.
+
+#### Container-Aware Collision (v0.6.0)
+
+Collision detection is hierarchical:
+
+**Rack-Level Collision:**
+
+- Container devices collide with other rack-level devices (normal rules)
+- Child devices (those with `container_id` set) are INVISIBLE to rack-level collision
+
+**Container-Level Collision:**
+
+- Children only collide with siblings in the SAME container
+- Child position is relative (0 = bottom of container)
+- Child must fit within container's u_height
+
+| Device A            | Device B            | Collision Check          |
+| ------------------- | ------------------- | ------------------------ |
+| Rack-level          | Rack-level          | Normal U/face/slot rules |
+| Rack-level          | Child               | Never collide            |
+| Child (container X) | Child (container X) | Check within container   |
+| Child (container X) | Child (container Y) | Never collide            |
+
+**Face Inheritance:**
+
+Children inherit their parent container's face for rendering purposes. The container's face is authoritative.
 
 ---
 
@@ -1372,7 +1442,11 @@ Users can upload a custom image for the specific placement, which overrides the 
 
 Features that will NOT be implemented:
 
-- Multiple racks per project
+- ~~Multiple racks per project~~ (implemented v0.6.0)
+- Nested containers (container within container)
+- Quarter-width devices
+- Irregular layouts (foam cutouts, non-grid arrangements)
+- Pre-built enclosure library (users create their own container types)
 - Backend/database
 - User accounts
 - Native mobile apps
