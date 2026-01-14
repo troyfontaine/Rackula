@@ -121,9 +121,7 @@ defaults:
 
 prSections:
   - title: "Failing CI"
-    filters: >-
-      is:open
-      status:failure
+    filters: "is:open status:failure"
   - title: "All Open"
     filters: "is:open"
 
@@ -135,9 +133,7 @@ issuesSections:
   - title: "${nextMilestone}"
     filters: "is:open milestone:${nextMilestone}"
   - title: "Priority"
-    filters: >-
-      is:open
-      label:priority:high,priority:urgent
+    filters: "is:open label:priority:high,priority:urgent"
   - title: "Spikes"
     filters: "is:open label:spike"
 
@@ -154,10 +150,10 @@ keybindings:
     - key: c
       builtin: checkout
     - key: b
-      builtin: browser
+      command: open "{{.PrUrl}}"
   issues:
     - key: b
-      builtin: browser
+      command: open "{{.IssueUrl}}"
 `;
 }
 
