@@ -144,16 +144,18 @@ keybindings:
   universal:
     - key: e
       command: zed {{.RepoPath}}
-    - key: "y"
-      command: echo "{{.Number}}" | pbcopy
   prs:
     - key: c
       builtin: checkout
     - key: b
-      command: open "{{.PrUrl}}"
+      command: open "https://github.com/{{.RepoName}}/pull/{{.PrNumber}}"
+    - key: "y"
+      command: echo "{{.PrNumber}}" | pbcopy
   issues:
     - key: b
-      command: open "{{.IssueUrl}}"
+      command: open "https://github.com/{{.RepoName}}/issues/{{.IssueNumber}}"
+    - key: "y"
+      command: echo "{{.IssueNumber}}" | pbcopy
 `;
 }
 
