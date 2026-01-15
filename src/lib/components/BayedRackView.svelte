@@ -1,0 +1,506 @@
+<!--
+  BayedRackView Component
+  Renders bayed/touring racks in stacked layout:
+  - Front row on top (Bay 1, Bay 2, Bay 3... left to right)
+  - Shared U-labels column in center
+  - Rear row below (mirrored: Bay 1 on right, Bay 3 on left)
+-->
+<script lang="ts">
+  import type {
+    Rack as RackType,
+    RackGroup,
+    DeviceType,
+    DisplayMode,
+    AnnotationField,
+  } from "$lib/types";
+  import Rack from "./Rack.svelte";
+  import RackContextMenu from "./RackContextMenu.svelte";
+  import { useLongPress } from "$lib/utils/gestures";
+
+  interface Props {
+    group: RackGroup;
+    racks: RackType[];
+    deviceLibrary: DeviceType[];
+    /** ID of the currently active rack */
+    activeRackId?: string | null;
+    /** ID of the selected device (UUID-based tracking) */
+    selectedDeviceId?: string | null;
+    /** ID of the selected rack */
+    selectedRackId?: string | null;
+    displayMode?: DisplayMode;
+    showLabelsOnImages?: boolean;
+    /** Party mode visual effects active */
+    partyMode?: boolean;
+    /** Show annotation column */
+    showAnnotations?: boolean;
+    /** Which field to display in annotation column */
+    annotationField?: AnnotationField;
+    /** Enable long press gesture for mobile rack editing */
+    enableLongPress?: boolean;
+    onselect?: (event: CustomEvent<{ rackId: string }>) => void;
+    ondeviceselect?: (
+      event: CustomEvent<{ slug: string; position: number }>,
+    ) => void;
+    ondevicedrop?: (
+      event: CustomEvent<{
+        rackId: string;
+        slug: string;
+        position: number;
+        face: "front" | "rear";
+      }>,
+    ) => void;
+    ondevicemove?: (
+      event: CustomEvent<{
+        rackId: string;
+        deviceIndex: number;
+        newPosition: number;
+      }>,
+    ) => void;
+    ondevicemoverack?: (
+      event: CustomEvent<{
+        sourceRackId: string;
+        sourceIndex: number;
+        targetRackId: string;
+        targetPosition: number;
+      }>,
+    ) => void;
+    /** Mobile tap-to-place event */
+    onplacementtap?: (
+      event: CustomEvent<{ position: number; face: "front" | "rear" }>,
+    ) => void;
+    /** Mobile long press for rack editing */
+    onlongpress?: (event: CustomEvent<{ rackId: string }>) => void;
+    /** Context menu: add device callback */
+    onadddevice?: (rackId: string) => void;
+    /** Context menu: edit rack callback */
+    onedit?: (rackId: string) => void;
+    /** Context menu: rename rack callback */
+    onrename?: (rackId: string) => void;
+    /** Context menu: duplicate rack callback */
+    onduplicate?: (rackId: string) => void;
+    /** Context menu: delete rack callback */
+    ondelete?: (rackId: string) => void;
+  }
+
+  let {
+    group,
+    racks,
+    deviceLibrary,
+    activeRackId = null,
+    selectedDeviceId = null,
+    selectedRackId = null,
+    displayMode = "label",
+    showLabelsOnImages = false,
+    partyMode = false,
+    showAnnotations: _showAnnotations = false, // Reserved for future annotation support
+    annotationField: _annotationField = "name", // Reserved for future annotation support
+    enableLongPress = false,
+    onselect,
+    ondeviceselect,
+    ondevicedrop,
+    ondevicemove,
+    ondevicemoverack,
+    onplacementtap,
+    onlongpress,
+    onadddevice,
+    onedit,
+    onrename,
+    onduplicate,
+    ondelete,
+  }: Props = $props();
+
+  // Calculate max height for U-label column (use tallest rack)
+  const maxHeight = $derived(Math.max(...racks.map((r) => r.height), 0));
+
+  // Generate U labels for center column (ascending: U1 at bottom)
+  const U_HEIGHT = 22;
+  const RAIL_WIDTH = 17;
+
+  const uLabels = $derived(
+    Array.from({ length: maxHeight }, (_, i) => {
+      const uNumber = maxHeight - i;
+      const yPosition = i * U_HEIGHT + U_HEIGHT / 2 + RAIL_WIDTH;
+      return { uNumber, yPosition };
+    }),
+  );
+
+  const uColumnHeight = $derived(maxHeight * U_HEIGHT + RAIL_WIDTH * 2);
+
+  // Reversed racks for rear row (mirrored layout)
+  const reversedRacks = $derived([...racks].reverse());
+
+  // Element reference for long press
+  let containerElement: HTMLDivElement | null = $state(null);
+
+  // Long press state (per-rack)
+  let longPressRackId = $state<string | null>(null);
+  let longPressProgress = $state(0);
+  let longPressActive = $state(false);
+
+  // Attach long press gesture when enabled
+  $effect(() => {
+    if (!enableLongPress || !containerElement || !onlongpress) {
+      longPressActive = false;
+      longPressProgress = 0;
+      return;
+    }
+
+    const cleanup = useLongPress(
+      containerElement,
+      () => {
+        if (longPressRackId) {
+          longPressActive = false;
+          longPressProgress = 0;
+          onlongpress(
+            new CustomEvent("longpress", {
+              detail: { rackId: longPressRackId },
+            }),
+          );
+        }
+      },
+      {
+        onProgress: (progress) => {
+          longPressProgress = progress;
+        },
+        onStart: () => {
+          longPressActive = true;
+        },
+        onCancel: () => {
+          longPressActive = false;
+          longPressProgress = 0;
+        },
+      },
+    );
+
+    return cleanup;
+  });
+
+  // Handle device drop on front view - add face: 'front' to the event
+  function handleFrontDeviceDrop(
+    rackId: string,
+    event: CustomEvent<{ rackId: string; slug: string; position: number }>,
+  ) {
+    ondevicedrop?.(
+      new CustomEvent("devicedrop", {
+        detail: {
+          rackId,
+          slug: event.detail.slug,
+          position: event.detail.position,
+          face: "front" as const,
+        },
+      }),
+    );
+  }
+
+  // Handle device drop on rear view - add face: 'rear' to the event
+  function handleRearDeviceDrop(
+    rackId: string,
+    event: CustomEvent<{ rackId: string; slug: string; position: number }>,
+  ) {
+    ondevicedrop?.(
+      new CustomEvent("devicedrop", {
+        detail: {
+          rackId,
+          slug: event.detail.slug,
+          position: event.detail.position,
+          face: "rear" as const,
+        },
+      }),
+    );
+  }
+
+  function handleKeyDown(event: KeyboardEvent) {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      // Select first rack in group if none selected
+      if (racks.length > 0 && !activeRackId) {
+        onselect?.(
+          new CustomEvent("select", { detail: { rackId: racks[0].id } }),
+        );
+      }
+    }
+  }
+</script>
+
+<!-- eslint-disable-next-line svelte/no-unused-svelte-ignore -- these warnings appear in Vite build but not ESLint -->
+<!-- svelte-ignore a11y_no_noninteractive_tabindex, a11y_no_noninteractive_element_interactions (role="group" with tabindex is standard ARIA pattern for grouped interactive elements) -->
+<div
+  bind:this={containerElement}
+  class="bayed-rack-view"
+  class:long-press-active={longPressActive}
+  tabindex="0"
+  role="group"
+  aria-label="{group.name ?? 'Bayed Rack Group'}, {racks.length} bays"
+  onkeydown={handleKeyDown}
+  style:--long-press-progress={longPressProgress}
+>
+  <!-- Group name header -->
+  {#if group.name}
+    <div class="bayed-group-name">{group.name}</div>
+  {/if}
+
+  <!-- Front row label -->
+  <div class="row-label">FRONT</div>
+
+  <!-- Front row: racks left-to-right (Bay 1, Bay 2, Bay 3...) -->
+  <div class="bayed-row front-row">
+    {#each racks as rack, bayIndex (rack.id)}
+      {@const isActive = rack.id === activeRackId}
+      {@const isSelected = rack.id === selectedRackId}
+      <RackContextMenu
+        onadddevice={() => onadddevice?.(rack.id)}
+        onedit={() => onedit?.(rack.id)}
+        onrename={() => onrename?.(rack.id)}
+        onduplicate={() => onduplicate?.(rack.id)}
+        ondelete={() => ondelete?.(rack.id)}
+      >
+        <div
+          class="bay-container"
+          class:active={isActive}
+          class:selected={isSelected}
+          role="presentation"
+          onpointerdown={() => (longPressRackId = rack.id)}
+        >
+          <div class="bay-label">Bay {bayIndex + 1}</div>
+          <Rack
+            {rack}
+            {deviceLibrary}
+            selected={false}
+            selectedDeviceId={isActive ? selectedDeviceId : null}
+            {displayMode}
+            {showLabelsOnImages}
+            {partyMode}
+            faceFilter="front"
+            hideRackName={true}
+            onselect={() =>
+              onselect?.(
+                new CustomEvent("select", { detail: { rackId: rack.id } }),
+              )}
+            {ondeviceselect}
+            ondevicedrop={(e) => handleFrontDeviceDrop(rack.id, e)}
+            {ondevicemove}
+            {ondevicemoverack}
+            {onplacementtap}
+          />
+        </div>
+      </RackContextMenu>
+    {/each}
+  </div>
+
+  <!-- Center U-labels column -->
+  <div class="u-labels-column">
+    <svg
+      class="u-labels-svg"
+      width="32"
+      height={uColumnHeight}
+      viewBox="0 0 32 {uColumnHeight}"
+      role="img"
+      aria-label="U position labels"
+    >
+      <!-- Background -->
+      <rect x="0" y="0" width="32" height={uColumnHeight} class="u-column-bg" />
+
+      <!-- Top bar -->
+      <rect x="0" y="0" width="32" height={RAIL_WIDTH} class="u-column-rail" />
+
+      <!-- Bottom bar -->
+      <rect
+        x="0"
+        y={uColumnHeight - RAIL_WIDTH}
+        width="32"
+        height={RAIL_WIDTH}
+        class="u-column-rail"
+      />
+
+      <!-- U labels -->
+      {#each uLabels as { uNumber, yPosition } (uNumber)}
+        <text
+          x="16"
+          y={yPosition}
+          class="u-label"
+          class:u-label-highlight={uNumber % 5 === 0}
+          text-anchor="middle"
+          dominant-baseline="middle"
+        >
+          {uNumber}
+        </text>
+      {/each}
+    </svg>
+  </div>
+
+  <!-- Rear row label -->
+  <div class="row-label">REAR</div>
+
+  <!-- Rear row: racks right-to-left (mirrored: Bay 1 on right) -->
+  <div class="bayed-row rear-row">
+    {#each reversedRacks as rack, reversedIndex (rack.id)}
+      {@const bayIndex = racks.length - 1 - reversedIndex}
+      {@const isActive = rack.id === activeRackId}
+      {@const isSelected = rack.id === selectedRackId}
+      <RackContextMenu
+        onadddevice={() => onadddevice?.(rack.id)}
+        onedit={() => onedit?.(rack.id)}
+        onrename={() => onrename?.(rack.id)}
+        onduplicate={() => onduplicate?.(rack.id)}
+        ondelete={() => ondelete?.(rack.id)}
+      >
+        <div
+          class="bay-container"
+          class:active={isActive}
+          class:selected={isSelected}
+          role="presentation"
+          onpointerdown={() => (longPressRackId = rack.id)}
+        >
+          <div class="bay-label">Bay {bayIndex + 1}</div>
+          <Rack
+            {rack}
+            {deviceLibrary}
+            selected={false}
+            selectedDeviceId={isActive ? selectedDeviceId : null}
+            {displayMode}
+            {showLabelsOnImages}
+            {partyMode}
+            faceFilter="rear"
+            hideRackName={true}
+            onselect={() =>
+              onselect?.(
+                new CustomEvent("select", { detail: { rackId: rack.id } }),
+              )}
+            {ondeviceselect}
+            ondevicedrop={(e) => handleRearDeviceDrop(rack.id, e)}
+            {ondevicemove}
+            {ondevicemoverack}
+            {onplacementtap}
+          />
+        </div>
+      </RackContextMenu>
+    {/each}
+  </div>
+</div>
+
+<style>
+  .bayed-rack-view {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-3);
+    border-radius: var(--radius-md);
+    background: transparent;
+    position: relative;
+  }
+
+  .bayed-rack-view:focus {
+    outline: 2px solid var(--colour-selection);
+    outline-offset: 2px;
+  }
+
+  /* Long press visual feedback */
+  .bayed-rack-view.long-press-active {
+    outline: 3px solid var(--dracula-pink, #ff79c6);
+    outline-offset: 2px;
+    box-shadow: inset 0 0 0 calc(var(--long-press-progress, 0) * 4px)
+      rgba(255, 121, 198, 0.15);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .bayed-rack-view.long-press-active {
+      box-shadow: none;
+      outline-width: 3px;
+    }
+  }
+
+  .bayed-group-name {
+    font-size: var(--font-size-xl);
+    font-weight: 600;
+    color: var(--colour-text);
+    font-family: var(--font-family, system-ui, sans-serif);
+    text-align: center;
+    margin-bottom: var(--space-2);
+  }
+
+  .row-label {
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-semibold, 600);
+    color: var(--colour-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    text-align: center;
+    padding: var(--space-1) 0;
+  }
+
+  .bayed-row {
+    display: flex;
+    flex-direction: row;
+    gap: 0; /* No gap - bayed racks touch */
+    align-items: flex-start;
+  }
+
+  .bay-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    border-radius: var(--radius-sm);
+    transition: box-shadow var(--duration-fast) var(--ease-out);
+  }
+
+  .bay-container.active {
+    box-shadow: 0 0 0 2px var(--colour-selection);
+  }
+
+  .bay-container.selected {
+    outline: 2px solid var(--colour-selection);
+    outline-offset: 2px;
+  }
+
+  .bay-label {
+    font-size: var(--font-size-xs);
+    font-weight: 500;
+    color: var(--colour-text-muted);
+    text-align: center;
+    padding: var(--space-1) var(--space-2);
+    white-space: nowrap;
+  }
+
+  /* Remove individual rack selection styling since we handle it at bay level */
+  .bay-container :global(.rack-container) {
+    outline: none !important;
+  }
+
+  .bay-container :global(.rack-container:focus) {
+    outline: none !important;
+  }
+
+  /* U-labels center column */
+  .u-labels-column {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--space-2) 0;
+  }
+
+  .u-labels-svg {
+    display: block;
+  }
+
+  .u-column-bg {
+    fill: var(--rack-interior);
+  }
+
+  .u-column-rail {
+    fill: var(--rack-rail);
+  }
+
+  .u-label {
+    fill: var(--rack-text);
+    font-size: var(--font-size-2xs);
+    font-family: var(--font-mono, monospace);
+    font-variant-numeric: tabular-nums;
+    user-select: none;
+  }
+
+  .u-label-highlight {
+    font-weight: var(--font-weight-semibold, 600);
+    fill: var(--rack-text-highlight);
+  }
+</style>

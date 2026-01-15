@@ -20,6 +20,7 @@
   // Note: getViewportStore removed - was only used for PlacementIndicator condition
   import { hapticSuccess } from "$lib/utils/haptics";
   import RackDualView from "./RackDualView.svelte";
+  import BayedRackView from "./BayedRackView.svelte";
   import WelcomeScreen from "./WelcomeScreen.svelte";
   import CanvasContextMenu from "./CanvasContextMenu.svelte";
   // Note: PlacementIndicator removed - placement UI now integrated into Rack.svelte
@@ -388,51 +389,89 @@
         <div class="racks-wrapper">
           <!-- Render grouped racks with group labels -->
           {#each organizedRacks.groupEntries as { group, racks: groupRacks } (group.id)}
-            <div
-              class="rack-group"
-              class:bayed={group.layout_preset === "bayed"}
-            >
-              <div class="group-label">{group.name ?? "Group"}</div>
-              <div class="group-racks">
-                {#each groupRacks as rack (rack.id)}
-                  {@const isActive = rack.id === activeRackId}
-                  {@const isSelected =
-                    selectionStore.selectedType === "rack" &&
-                    selectionStore.selectedRackId === rack.id}
-                  <div class="rack-wrapper" class:active={isActive}>
-                    <RackDualView
-                      {rack}
-                      deviceLibrary={layoutStore.device_types}
-                      selected={isSelected}
-                      {isActive}
-                      selectedDeviceId={selectionStore.selectedType ===
-                        "device" && selectionStore.selectedRackId === rack.id
-                        ? selectionStore.selectedDeviceId
-                        : null}
-                      displayMode={uiStore.displayMode}
-                      showLabelsOnImages={uiStore.showLabelsOnImages}
-                      showAnnotations={uiStore.showAnnotations}
-                      annotationField={uiStore.annotationField}
-                      showBanana={uiStore.showBanana}
-                      {partyMode}
-                      {enableLongPress}
-                      onselect={(e) => handleRackSelect(e)}
-                      ondeviceselect={(e) => handleDeviceSelect(rack.id, e)}
-                      ondevicedrop={(e) => handleDeviceDrop(e)}
-                      ondevicemove={(e) => handleDeviceMove(e)}
-                      ondevicemoverack={(e) => handleDeviceMoveRack(e)}
-                      onplacementtap={(e) => handlePlacementTap(rack.id, e)}
-                      onlongpress={(e) => onracklongpress?.(e)}
-                      onadddevice={() => onrackadddevice?.(rack.id)}
-                      onedit={() => onrackedit?.(rack.id)}
-                      onrename={() => onrackrename?.(rack.id)}
-                      onduplicate={() => onrackduplicate?.(rack.id)}
-                      ondelete={() => onrackdelete?.(rack.id)}
-                    />
-                  </div>
-                {/each}
+            {#if group.layout_preset === "bayed"}
+              <!-- Bayed/touring racks use special stacked view -->
+              <BayedRackView
+                {group}
+                racks={groupRacks}
+                deviceLibrary={layoutStore.device_types}
+                {activeRackId}
+                selectedDeviceId={selectionStore.selectedType === "device"
+                  ? selectionStore.selectedDeviceId
+                  : null}
+                selectedRackId={selectionStore.selectedType === "rack"
+                  ? selectionStore.selectedRackId
+                  : null}
+                displayMode={uiStore.displayMode}
+                showLabelsOnImages={uiStore.showLabelsOnImages}
+                showAnnotations={uiStore.showAnnotations}
+                annotationField={uiStore.annotationField}
+                {partyMode}
+                {enableLongPress}
+                onselect={(e) => handleRackSelect(e)}
+                ondeviceselect={(e) => {
+                  const rackId = activeRackId ?? groupRacks[0]?.id;
+                  if (rackId) handleDeviceSelect(rackId, e);
+                }}
+                ondevicedrop={(e) => handleDeviceDrop(e)}
+                ondevicemove={(e) => handleDeviceMove(e)}
+                ondevicemoverack={(e) => handleDeviceMoveRack(e)}
+                onplacementtap={(e) => {
+                  const rackId = activeRackId ?? groupRacks[0]?.id;
+                  if (rackId) handlePlacementTap(rackId, e);
+                }}
+                onlongpress={(e) => onracklongpress?.(e)}
+                onadddevice={(rackId) => onrackadddevice?.(rackId)}
+                onedit={(rackId) => onrackedit?.(rackId)}
+                onrename={(rackId) => onrackrename?.(rackId)}
+                onduplicate={(rackId) => onrackduplicate?.(rackId)}
+                ondelete={(rackId) => onrackdelete?.(rackId)}
+              />
+            {:else}
+              <!-- Standard row layout for non-bayed groups -->
+              <div class="rack-group">
+                <div class="group-label">{group.name ?? "Group"}</div>
+                <div class="group-racks">
+                  {#each groupRacks as rack (rack.id)}
+                    {@const isActive = rack.id === activeRackId}
+                    {@const isSelected =
+                      selectionStore.selectedType === "rack" &&
+                      selectionStore.selectedRackId === rack.id}
+                    <div class="rack-wrapper" class:active={isActive}>
+                      <RackDualView
+                        {rack}
+                        deviceLibrary={layoutStore.device_types}
+                        selected={isSelected}
+                        {isActive}
+                        selectedDeviceId={selectionStore.selectedType ===
+                          "device" && selectionStore.selectedRackId === rack.id
+                          ? selectionStore.selectedDeviceId
+                          : null}
+                        displayMode={uiStore.displayMode}
+                        showLabelsOnImages={uiStore.showLabelsOnImages}
+                        showAnnotations={uiStore.showAnnotations}
+                        annotationField={uiStore.annotationField}
+                        showBanana={uiStore.showBanana}
+                        {partyMode}
+                        {enableLongPress}
+                        onselect={(e) => handleRackSelect(e)}
+                        ondeviceselect={(e) => handleDeviceSelect(rack.id, e)}
+                        ondevicedrop={(e) => handleDeviceDrop(e)}
+                        ondevicemove={(e) => handleDeviceMove(e)}
+                        ondevicemoverack={(e) => handleDeviceMoveRack(e)}
+                        onplacementtap={(e) => handlePlacementTap(rack.id, e)}
+                        onlongpress={(e) => onracklongpress?.(e)}
+                        onadddevice={() => onrackadddevice?.(rack.id)}
+                        onedit={() => onrackedit?.(rack.id)}
+                        onrename={() => onrackrename?.(rack.id)}
+                        onduplicate={() => onrackduplicate?.(rack.id)}
+                        ondelete={() => onrackdelete?.(rack.id)}
+                      />
+                    </div>
+                  {/each}
+                </div>
               </div>
-            </div>
+            {/if}
           {/each}
 
           <!-- Render ungrouped racks -->
@@ -524,7 +563,7 @@
     box-shadow: 0 0 0 3px var(--colour-selection);
   }
 
-  /* Rack group visual container */
+  /* Rack group visual container (for non-bayed groups; bayed uses BayedRackView) */
   .rack-group {
     display: flex;
     flex-direction: column;
@@ -533,13 +572,6 @@
     border: 2px dashed var(--colour-border);
     border-radius: var(--radius-lg);
     background: var(--colour-surface-overlay, rgba(40, 42, 54, 0.3));
-  }
-
-  .rack-group.bayed {
-    /* Bayed groups have a tighter visual appearance */
-    border-style: solid;
-    border-color: var(--colour-selection);
-    background: var(--colour-surface-overlay, rgba(139, 233, 253, 0.05));
   }
 
   .group-label {
@@ -551,19 +583,10 @@
     padding: 0 var(--space-1);
   }
 
-  .rack-group.bayed .group-label {
-    color: var(--colour-selection);
-  }
-
   .group-racks {
     display: flex;
     flex-direction: row;
     gap: var(--space-4);
-  }
-
-  .rack-group.bayed .group-racks {
-    /* Bayed racks are closer together - side-by-side appearance */
-    gap: var(--space-2);
   }
 
   /* Party mode: animated gradient background */
