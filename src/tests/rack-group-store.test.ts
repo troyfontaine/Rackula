@@ -2,7 +2,7 @@
  * Rack Group Store Tests
  *
  * Tests for rack group CRUD operations in the layout store.
- * Groups allow organizing racks with shared layout presets (bayed, row, custom).
+ * Groups allow organizing racks with shared layout presets (bayed, row).
  *
  * Issue: #476 - Rack Group Management & Layout Presets
  */
@@ -207,10 +207,10 @@ describe("Rack Group Store", () => {
       const rack = store.addRack("Rack 1", 42);
       const { group } = store.createRackGroup("Test Group", [rack!.id], "row");
 
-      store.updateRackGroup(group!.id, { layout_preset: "custom" });
+      store.updateRackGroup(group!.id, { layout_preset: "bayed" });
 
       const updated = store.getRackGroupById(group!.id);
-      expect(updated!.layout_preset).toBe("custom");
+      expect(updated!.layout_preset).toBe("bayed");
     });
 
     it("validates bayed preset requires same-height racks", () => {

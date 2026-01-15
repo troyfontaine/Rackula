@@ -610,9 +610,8 @@ export interface Rack {
  * Layout preset for rack groups
  * - 'bayed': Stacked front/rear view for touring racks
  * - 'row': Side-by-side layout (default)
- * - 'custom': User-defined positioning
  */
-export type RackGroupLayoutPreset = "bayed" | "row" | "custom";
+export type RackGroupLayoutPreset = "bayed" | "row";
 
 /**
  * A group of racks with shared layout behavior

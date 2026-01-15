@@ -829,11 +829,6 @@ describe("RackGroupSchema", () => {
       expect(RackGroupSchema.safeParse(group).success).toBe(true);
     });
 
-    it("accepts custom layout preset", () => {
-      const group = { ...validRackGroup, layout_preset: "custom" as const };
-      expect(RackGroupSchema.safeParse(group).success).toBe(true);
-    });
-
     it("accepts rack group without optional name", () => {
       const group = { id: "group-1", rack_ids: ["rack-1", "rack-2"] };
       expect(RackGroupSchema.safeParse(group).success).toBe(true);

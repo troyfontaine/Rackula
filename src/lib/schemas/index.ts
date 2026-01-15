@@ -667,7 +667,7 @@ export const RackSchema = z
 /**
  * Layout preset for rack groups
  */
-export const RackGroupLayoutPresetSchema = z.enum(["bayed", "row", "custom"]);
+export const RackGroupLayoutPresetSchema = z.enum(["bayed", "row"]);
 
 /**
  * Rack group schema for touring/bayed rack configurations
