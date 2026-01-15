@@ -5,7 +5,7 @@
 -->
 <script lang="ts">
   import { DropdownMenu } from "bits-ui";
-  import Icon from "@iconify/svelte";
+  import { IconFolderBold } from "./icons";
   import { formatShortcut } from "$lib/utils/platform";
   import "$lib/styles/menu.css";
 
@@ -38,7 +38,7 @@
 
 <DropdownMenu.Root bind:open>
   <DropdownMenu.Trigger class="toolbar-icon-btn" aria-label="File menu">
-    <Icon icon="ph:folder-bold" />
+    <IconFolderBold size={20} />
   </DropdownMenu.Trigger>
 
   <DropdownMenu.Content

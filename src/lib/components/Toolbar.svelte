@@ -10,8 +10,15 @@
   import FileMenu from "./FileMenu.svelte";
   import SettingsMenu from "./SettingsMenu.svelte";
   import LogoLockup from "./LogoLockup.svelte";
-  import Icon from "@iconify/svelte";
-  import { IconImageLabel } from "./icons";
+  import {
+    IconPlusBold,
+    IconUndoBold,
+    IconRedoBold,
+    IconTextBold,
+    IconImageBold,
+    IconFitAllBold,
+    IconImageLabel,
+  } from "./icons";
   import type { DisplayMode } from "$lib/types";
   import { getLayoutStore } from "$lib/stores/layout.svelte";
   import { getToastStore } from "$lib/stores/toast.svelte";
@@ -164,7 +171,7 @@
         onclick={handleNewRack}
         data-testid="btn-new-rack"
       >
-        <Icon icon="ph:plus-bold" />
+        <IconPlusBold size={20} />
       </button>
     </Tooltip>
 
@@ -180,7 +187,7 @@
         onclick={handleUndo}
         data-testid="btn-undo"
       >
-        <Icon icon="ph:arrow-counter-clockwise-bold" />
+        <IconUndoBold size={20} />
       </button>
     </Tooltip>
 
@@ -196,7 +203,7 @@
         onclick={handleRedo}
         data-testid="btn-redo"
       >
-        <Icon icon="ph:arrow-clockwise-bold" />
+        <IconRedoBold size={20} />
       </button>
     </Tooltip>
 
@@ -212,9 +219,9 @@
         data-testid="btn-display-mode"
       >
         {#if displayMode === "label"}
-          <Icon icon="ph:text-t-bold" />
+          <IconTextBold size={20} />
         {:else if displayMode === "image"}
-          <Icon icon="ph:image-bold" />
+          <IconImageBold size={20} />
         {:else}
           <IconImageLabel size={24} />
         {/if}
@@ -228,7 +235,7 @@
         onclick={handleFitAll}
         data-testid="btn-fit-all"
       >
-        <Icon icon="ph:arrows-in-cardinal-bold" />
+        <IconFitAllBold size={20} />
       </button>
     </Tooltip>
   </div>

@@ -5,7 +5,7 @@
 -->
 <script lang="ts">
   import { DropdownMenu } from "bits-ui";
-  import Icon from "@iconify/svelte";
+  import { IconGearBold } from "./icons";
   import "$lib/styles/menu.css";
 
   interface Props {
@@ -31,7 +31,7 @@
 
 <DropdownMenu.Root bind:open>
   <DropdownMenu.Trigger class="toolbar-icon-btn" aria-label="Settings menu">
-    <Icon icon="ph:gear-bold" />
+    <IconGearBold size={20} />
   </DropdownMenu.Trigger>
 
   <DropdownMenu.Content
