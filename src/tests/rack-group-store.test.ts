@@ -438,6 +438,22 @@ describe("Rack Group Store", () => {
     });
   });
 
+  describe("updateRack with bayed groups", () => {
+    it("rejects height changes for racks in bayed groups", () => {
+      const store = getLayoutStore();
+      // Create bayed group (same heights required)
+      const result = store.addBayedRackGroup("Touring Bay", 2, 20, 19);
+      expect(result).not.toBeNull();
+      const rack1Id = result!.racks[0]!.id;
+
+      // Try to change height
+      store.updateRack(rack1Id, { height: 12 });
+
+      // Height should be unchanged (still 20)
+      expect(store.getRackById(rack1Id)?.height).toBe(20);
+    });
+  });
+
   describe("deleteRack removes rack from groups", () => {
     it("removes deleted rack from its group", () => {
       const store = getLayoutStore();

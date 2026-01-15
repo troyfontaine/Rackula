@@ -504,6 +504,19 @@ function updateRack(id: string, updates: Partial<Rack>): void {
   const rackIndex = layout.racks.findIndex((r) => r.id === id);
   if (rackIndex === -1) return;
 
+  // Check if height change on bayed rack
+  if (updates.height !== undefined) {
+    const group = getRackGroupForRack(id);
+    if (group?.layout_preset === "bayed") {
+      layoutDebug.state(
+        "updateRack: rejected height change for bayed rack %s",
+        id,
+      );
+      // Silently reject - UI should show toast
+      return;
+    }
+  }
+
   // Handle view separately (doesn't need undo/redo)
   if (updates.view !== undefined) {
     layout = {
