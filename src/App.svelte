@@ -129,11 +129,12 @@
   // Device library import file input ref
   let deviceImportInputRef = $state<HTMLInputElement | null>(null);
 
-  // Safe viewport width: use viewportStore if available, else fallback to default
+  // Safe viewport width: use viewportStore if available, else fallback to reasonable default
   // Guards against SSR/test environments where window may not exist
   function getSafeViewportWidth(): number {
     const width = viewportStore.width;
-    return width > 0 ? width : sidePanelSizeDefault;
+    // Fallback to 1280px (common desktop width) to ensure sensible percentage calculations
+    return width > 0 ? width : 1280;
   }
 
   // Convert pixel sizes to percentages based on viewport width
@@ -969,7 +970,8 @@
 <Tooltip.Provider delayDuration={500}>
   <div
     class="app-layout"
-    style="--sidebar-width: min({uiStore.sidebarWidth ?? sidePanelSizeDefault}px, var(--sidebar-width-max))"
+    style="--sidebar-width: min({uiStore.sidebarWidth ??
+      sidePanelSizeDefault}px, var(--sidebar-width-max))"
   >
     <Toolbar
       hasSelection={selectionStore.hasSelection}
@@ -1018,10 +1020,7 @@
               onchange={(tab) => uiStore.setSidebarTab(tab)}
             />
             {#if uiStore.sidebarTab === "devices"}
-              <DevicePalette
-                onadddevice={handleAddDevice}
-                onimportfromnetbox={handleImportFromNetBox}
-              />
+              <DevicePalette />
             {:else if uiStore.sidebarTab === "racks"}
               <RackList onaddrack={handleNewRack} />
             {/if}
