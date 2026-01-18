@@ -27,7 +27,10 @@ import {
   createTestDevice,
   createTestContainerChild,
   createTestDeviceType,
+  createTestRack,
+  createTestLayoutSettings,
 } from "./factories";
+import { VERSION } from "$lib/version";
 
 // ============================================================================
 // SlugSchema Tests
@@ -1892,6 +1895,154 @@ describe("LayoutSchema container validation", () => {
         expect(result.error.issues[0]?.message).toContain(
           "Single-level nesting only",
         );
+      }
+    });
+  });
+});
+
+// ============================================================================
+// Position Migration Tests (v0.7.0 - 1/6U Internal Units)
+// ============================================================================
+
+describe("LayoutSchema position migration", () => {
+  // Helper to create migration test layouts using shared factories
+  const createMigrationTestLayout = (version: string, devices: unknown[]) => ({
+    version,
+    name: "Test Layout",
+    racks: [
+      createTestRack({
+        id: "rack-1",
+        devices: devices as Parameters<typeof createTestRack>[0]["devices"],
+      }),
+    ],
+    device_types: [],
+    settings: createTestLayoutSettings({ show_labels_on_images: true }),
+  });
+
+  describe("version-based detection", () => {
+    it("migrates positions for version < 0.7.0", () => {
+      const layout = createMigrationTestLayout("0.6.16", [
+        { id: "device-1", device_type: "server", position: 10, face: "front" },
+      ]);
+
+      const result = LayoutSchema.safeParse(layout);
+      expect(result.success).toBe(true);
+      if (result.success) {
+        // Position 10 * 6 = 60
+        expect(result.data.racks[0]!.devices[0]!.position).toBe(60);
+      }
+    });
+
+    it("does not migrate positions for version >= 0.7.0", () => {
+      const layout = createMigrationTestLayout("0.7.0", [
+        { id: "device-1", device_type: "server", position: 60, face: "front" },
+      ]);
+
+      const result = LayoutSchema.safeParse(layout);
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.racks[0]!.devices[0]!.position).toBe(60);
+      }
+    });
+
+    it("migrates positions when version is missing", () => {
+      const layout = {
+        name: "Test Layout",
+        racks: [
+          createTestRack({
+            id: "rack-1",
+            devices: [
+              {
+                id: "device-1",
+                device_type: "server",
+                position: 5,
+                face: "front" as const,
+              },
+            ],
+          }),
+        ],
+        device_types: [],
+        settings: createTestLayoutSettings({ show_labels_on_images: true }),
+      };
+
+      const result = LayoutSchema.safeParse(layout);
+      expect(result.success).toBe(true);
+      if (result.success) {
+        // Position 5 * 6 = 30
+        expect(result.data.racks[0]!.devices[0]!.position).toBe(30);
+      }
+    });
+  });
+
+  describe("heuristic fallback", () => {
+    it("migrates when position < 6 even if version >= 0.7.0", () => {
+      // Edge case: version says new, but data says old
+      const layout = createMigrationTestLayout("0.7.0", [
+        { id: "device-1", device_type: "server", position: 5, face: "front" },
+      ]);
+
+      const result = LayoutSchema.safeParse(layout);
+      expect(result.success).toBe(true);
+      if (result.success) {
+        // Heuristic triggered: 5 * 6 = 30
+        expect(result.data.racks[0]!.devices[0]!.position).toBe(30);
+      }
+    });
+
+    it("does not migrate container children based on heuristic", () => {
+      // Container children can have position 0, 1, etc. - don't trigger heuristic
+      const layout = createMigrationTestLayout("0.7.0", [
+        {
+          id: "container-1",
+          device_type: "chassis",
+          position: 60,
+          face: "front",
+        },
+        {
+          id: "child-1",
+          device_type: "blade",
+          position: 0,
+          face: "front",
+          container_id: "container-1",
+          slot_id: "slot-1",
+        },
+      ]);
+
+      const result = LayoutSchema.safeParse(layout);
+      expect(result.success).toBe(true);
+      if (result.success) {
+        // Container position unchanged (already new format)
+        expect(result.data.racks[0]!.devices[0]!.position).toBe(60);
+        // Child position unchanged
+        expect(result.data.racks[0]!.devices[1]!.position).toBe(0);
+      }
+    });
+  });
+
+  describe("version stamping after migration", () => {
+    it("stamps migrated layouts with current app version", () => {
+      const layout = createMigrationTestLayout("0.6.16", [
+        { id: "device-1", device_type: "server", position: 10, face: "front" },
+      ]);
+
+      const result = LayoutSchema.safeParse(layout);
+      expect(result.success).toBe(true);
+      if (result.success) {
+        // Version should be updated to current app version
+        expect(result.data.version).toBe(VERSION);
+      }
+    });
+
+    it("preserves version for layouts that don't need migration", () => {
+      const layout = createMigrationTestLayout("0.7.0", [
+        { id: "device-1", device_type: "server", position: 60, face: "front" },
+      ]);
+
+      const result = LayoutSchema.safeParse(layout);
+      expect(result.success).toBe(true);
+      if (result.success) {
+        // Version should remain unchanged
+        expect(result.data.version).toBe("0.7.0");
       }
     });
   });
