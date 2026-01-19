@@ -786,7 +786,7 @@ describe("KeyboardHandler Component", () => {
   });
 
   describe("Multi-U Device Movement", () => {
-    it("moves 2U device by 2U increments", async () => {
+    it("moves 2U device by 1U (consistent step size)", async () => {
       const layoutStore = getLayoutStore();
       const selectionStore = getSelectionStore();
 
@@ -807,9 +807,9 @@ describe("KeyboardHandler Component", () => {
       const initialPosition = layoutStore.rack!.devices[0]!.position;
       await fireEvent.keyDown(window, { key: "ArrowUp" });
 
-      // 2U device should move by 2U = 12 internal units
+      // All devices move by 1U regardless of height
       expect(layoutStore.rack!.devices[0]!.position).toBe(
-        initialPosition + 2 * UNITS_PER_U,
+        initialPosition + UNITS_PER_U,
       );
     });
 

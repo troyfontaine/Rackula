@@ -62,10 +62,10 @@ export function findNextValidPosition(
   }
 
   // Movement increment in internal units:
-  // If stepOverride is provided (in human U), convert it; otherwise use device height
+  // If stepOverride is provided (in human U), convert it; otherwise use 1U
   const moveIncrementInternal = stepOverride
     ? toInternalUnits(stepOverride)
-    : heightToInternalUnits(deviceType.u_height);
+    : UNITS_PER_U;
 
   // Calculate initial target position (all positions are in internal units)
   let newPosition = placedDevice.position + direction * moveIncrementInternal;

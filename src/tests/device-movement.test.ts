@@ -109,25 +109,25 @@ describe("Device Movement Utility", () => {
         expect(result.reason).toBe("moved");
       });
 
-      it("moves a 2U device up by 2U (device height)", () => {
+      it("moves a 2U device up by 1U (consistent step size)", () => {
         const rack = createTestRack(42, [pd("2u-server", 10, "front")]);
         const deviceTypes = createDeviceTypes();
 
         const result = findNextValidPosition(rack, deviceTypes, 0, 1);
 
         expect(result.success).toBe(true);
-        expect(result.newPosition).toBe(toInternalUnits(12));
+        expect(result.newPosition).toBe(toInternalUnits(11));
         expect(result.reason).toBe("moved");
       });
 
-      it("moves a 4U device down by 4U (device height)", () => {
+      it("moves a 4U device down by 1U (consistent step size)", () => {
         const rack = createTestRack(42, [pd("4u-storage", 10, "front")]);
         const deviceTypes = createDeviceTypes();
 
         const result = findNextValidPosition(rack, deviceTypes, 0, -1);
 
         expect(result.success).toBe(true);
-        expect(result.newPosition).toBe(toInternalUnits(6));
+        expect(result.newPosition).toBe(toInternalUnits(9));
         expect(result.reason).toBe("moved");
       });
 
@@ -325,25 +325,36 @@ describe("Device Movement Utility", () => {
     });
 
     describe("0.5U Device Support", () => {
-      it("moves 0.5U device up by 0.5U", () => {
+      it("moves 0.5U device up by 1U (consistent step size)", () => {
         const rack = createTestRack(42, [pd("half-u-patch", 10, "front")]);
         const deviceTypes = createDeviceTypes();
 
         const result = findNextValidPosition(rack, deviceTypes, 0, 1);
 
         expect(result.success).toBe(true);
-        expect(result.newPosition).toBe(toInternalUnits(10.5));
+        expect(result.newPosition).toBe(toInternalUnits(11));
         expect(result.reason).toBe("moved");
       });
 
-      it("moves 0.5U device down by 0.5U", () => {
+      it("moves 0.5U device down by 1U (consistent step size)", () => {
         const rack = createTestRack(42, [pd("half-u-patch", 10.5, "front")]);
         const deviceTypes = createDeviceTypes();
 
         const result = findNextValidPosition(rack, deviceTypes, 0, -1);
 
         expect(result.success).toBe(true);
-        expect(result.newPosition).toBe(toInternalUnits(10));
+        expect(result.newPosition).toBe(toInternalUnits(9.5));
+        expect(result.reason).toBe("moved");
+      });
+
+      it("uses stepOverride for sub-U movement (0.5U)", () => {
+        const rack = createTestRack(42, [pd("half-u-patch", 10, "front")]);
+        const deviceTypes = createDeviceTypes();
+
+        const result = findNextValidPosition(rack, deviceTypes, 0, 1, 0.5);
+
+        expect(result.success).toBe(true);
+        expect(result.newPosition).toBe(toInternalUnits(10.5));
         expect(result.reason).toBe("moved");
       });
     });
