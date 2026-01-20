@@ -39,6 +39,10 @@ export const appDebug = {
   mobile: Debug("rackula:app:mobile"),
 };
 
+export const selectionDebug = {
+  state: Debug("rackula:selection:state"),
+};
+
 // Create shared instances for reuse
 const generalLog = Debug("rackula:general");
 const infoLog = Debug("rackula:info");

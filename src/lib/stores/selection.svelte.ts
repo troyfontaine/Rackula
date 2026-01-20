@@ -8,6 +8,7 @@
  */
 
 import type { PlacedDevice } from "$lib/types";
+import { selectionDebug } from "$lib/utils/debug";
 
 // Selection types
 type SelectionType = "rack" | "group" | "device" | null;
@@ -84,6 +85,12 @@ export function getSelectionStore() {
  * @param rackId - ID of the rack to select
  */
 function selectRack(rackId: string): void {
+  selectionDebug.state(
+    "selectRack: %s (prev: %s/%s)",
+    rackId,
+    selectedType,
+    selectedRackId,
+  );
   selectedType = "rack";
   selectedRackId = rackId;
   selectedGroupId = null;
@@ -93,10 +100,18 @@ function selectRack(rackId: string): void {
 /**
  * Select a rack group (bayed rack)
  * @param groupId - ID of the group to select
+ * @param activeRackId - ID of the active rack within the group (for panel operations)
  */
-function selectGroup(groupId: string): void {
+function selectGroup(groupId: string, activeRackId?: string): void {
+  selectionDebug.state(
+    "selectGroup: %s (activeRack: %s, prev: %s/%s)",
+    groupId,
+    activeRackId,
+    selectedType,
+    selectedGroupId,
+  );
   selectedType = "group";
-  selectedRackId = null;
+  selectedRackId = activeRackId ?? null;
   selectedGroupId = groupId;
   selectedDeviceId = null;
 }
@@ -107,6 +122,13 @@ function selectGroup(groupId: string): void {
  * @param deviceId - Unique ID of the placed device (UUID)
  */
 function selectDevice(rackId: string, deviceId: string): void {
+  selectionDebug.state(
+    "selectDevice: %s in rack %s (prev: %s/%s)",
+    deviceId,
+    rackId,
+    selectedType,
+    selectedDeviceId,
+  );
   selectedType = "device";
   selectedRackId = rackId;
   selectedGroupId = null;
@@ -117,6 +139,13 @@ function selectDevice(rackId: string, deviceId: string): void {
  * Clear the current selection
  */
 function clearSelection(): void {
+  selectionDebug.state(
+    "clearSelection (prev: %s, rack: %s, group: %s, device: %s)",
+    selectedType,
+    selectedRackId,
+    selectedGroupId,
+    selectedDeviceId,
+  );
   selectedType = null;
   selectedRackId = null;
   selectedGroupId = null;

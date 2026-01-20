@@ -420,8 +420,10 @@
     display: flex;
     flex-direction: column;
     align-items: center;
+    /* Prevent stretching to match taller siblings in flex parent */
+    align-self: flex-start;
     gap: var(--space-2);
-    padding: var(--space-2);
+    padding: var(--space-3);
     border-radius: var(--radius-md);
     background: transparent;
     position: relative;
@@ -429,23 +431,24 @@
 
   .bayed-rack-view:focus {
     outline: 2px solid var(--colour-selection);
-    outline-offset: 1px;
+    outline-offset: 2px;
   }
 
   /* Selection highlight for entire bayed rack group */
-  .bayed-rack-view.active {
+  /* Active state only shows when NOT selected (to avoid double highlight) */
+  .bayed-rack-view.active:not(.selected) {
     box-shadow: 0 0 0 2px var(--colour-selection);
   }
 
   .bayed-rack-view.selected {
     outline: 2px solid var(--colour-selection);
-    outline-offset: 1px;
+    outline-offset: 4px;
   }
 
   /* Long press visual feedback */
   .bayed-rack-view.long-press-active {
     outline: 3px solid var(--dracula-pink, #ff79c6);
-    outline-offset: 1px;
+    outline-offset: 2px;
     box-shadow: inset 0 0 0 calc(var(--long-press-progress, 0) * 4px)
       rgba(255, 121, 198, 0.15);
   }
@@ -500,6 +503,8 @@
     text-align: center;
     padding: var(--space-1) var(--space-2);
     white-space: nowrap;
+    /* Explicit line-height ensures --bay-label-block-height calculation is accurate */
+    line-height: 1;
   }
 
   /* Remove individual rack selection styling since we handle it at bay level */
@@ -508,6 +513,14 @@
   }
 
   .bay-container :global(.rack-container:focus) {
+    outline: none !important;
+  }
+
+  .bay-container :global(.rack-container.selected) {
+    outline: none !important;
+  }
+
+  .bay-container :global(.rack-container[aria-selected="true"]) {
     outline: none !important;
   }
 

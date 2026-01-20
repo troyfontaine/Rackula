@@ -92,8 +92,25 @@
   // State for delete device type confirmation dialog
   let showDeleteConfirm = $state(false);
 
+  // Get the selected group if a bayed rack is selected
+  const selectedGroup = $derived.by(() => {
+    if (!selectionStore.isGroupSelected || !selectionStore.selectedGroupId)
+      return null;
+    return (
+      layoutStore.rack_groups.find(
+        (g) => g.id === selectionStore.selectedGroupId,
+      ) ?? null
+    );
+  });
+
   // Get the selected rack if any (multi-rack mode)
+  // Also works when a group is selected (returns the active rack within the group)
   const selectedRack = $derived.by(() => {
+    // For group selection, return the active rack
+    if (selectionStore.isGroupSelected && currentRackId) {
+      return layoutStore.activeRack;
+    }
+    // For individual rack selection
     if (!selectionStore.isRackSelected || !currentRackId) return null;
     if (selectionStore.selectedRackId !== currentRackId) return null;
     return layoutStore.activeRack;
@@ -185,20 +202,31 @@
     }
   });
 
-  // Sync local state with selected rack and clear errors
+  // Sync local state with selected rack/group and clear errors
   $effect(() => {
     if (selectedRack) {
-      rackName = selectedRack.name;
+      // For bayed racks, use the group name; otherwise use rack name
+      rackName = selectedGroup?.name ?? selectedRack.name;
       rackHeight = selectedRack.height;
       rackNotes = selectedRack.notes ?? "";
       resizeError = null; // Clear any previous resize error
     }
   });
 
-  // Update rack name on blur
+  // Update rack/group name on blur
   function handleNameBlur() {
-    if (selectedRack && rackName !== selectedRack.name) {
-      layoutStore.updateRack(currentRackId!, { name: rackName });
+    if (!selectedRack) return;
+    const currentName = selectedGroup?.name ?? selectedRack.name;
+    if (rackName !== currentName) {
+      if (selectedGroup) {
+        // Update group name for bayed racks
+        layoutStore.updateRackGroup(selectedGroup.id, {
+          name: rackName || undefined,
+        });
+      } else {
+        // Update rack name for regular racks
+        layoutStore.updateRack(currentRackId!, { name: rackName });
+      }
     }
   }
 
@@ -264,9 +292,19 @@
     attemptHeightChange(preset);
   }
 
-  // Delete selected rack
+  // Delete selected rack or bayed rack group
   function handleDeleteRack() {
-    if (selectedRack) {
+    if (selectedGroup) {
+      // Delete entire bayed rack group - must delete racks first, then the group
+      const rackIds = [...selectedGroup.rack_ids];
+      selectionStore.clearSelection();
+      // Delete each rack in the group
+      for (const rackId of rackIds) {
+        layoutStore.deleteRack(rackId);
+      }
+      // The group will be auto-deleted when all racks are removed
+    } else if (selectedRack) {
+      // Delete individual rack
       layoutStore.deleteRack(currentRackId!);
       selectionStore.clearSelection();
     }
@@ -759,9 +797,9 @@
           type="button"
           class="btn-danger"
           onclick={handleDeleteRack}
-          aria-label="Delete rack"
+          aria-label={selectedGroup ? "Delete bayed rack" : "Delete rack"}
         >
-          Delete Rack
+          {selectedGroup ? "Delete Bayed Rack" : "Delete Rack"}
         </button>
       </div>
     </div>

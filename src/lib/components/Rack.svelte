@@ -187,6 +187,9 @@
   // Rack padding is reduced when rack name is hidden (in dual-view mode)
   const RACK_PADDING = $derived(hideRackName ? 4 : BASE_RACK_PADDING);
 
+  // ViewBox Y offset - only needed when showing rack name (for anti-cutoff margin)
+  const viewBoxYOffset = $derived(hideRackName ? 0 : NAME_Y_OFFSET);
+
   // Calculated dimensions
   const totalHeight = $derived(rack.height * U_HEIGHT);
   // viewBoxHeight includes: rack name padding + top bar + U slots + bottom bar
@@ -998,8 +1001,8 @@
     bind:this={svgElement}
     class="rack-svg"
     width={RACK_WIDTH}
-    height={viewBoxHeight + NAME_Y_OFFSET}
-    viewBox="0 -{NAME_Y_OFFSET} {RACK_WIDTH} {viewBoxHeight + NAME_Y_OFFSET}"
+    height={viewBoxHeight + viewBoxYOffset}
+    viewBox="0 -{viewBoxYOffset} {RACK_WIDTH} {viewBoxHeight + viewBoxYOffset}"
     role="img"
     aria-label="{rack.name}, {rack.height}U rack{selected ? ', selected' : ''}"
     ondragover={handleDragOver}
