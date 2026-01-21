@@ -533,8 +533,12 @@
     dialogStore.close();
 
     try {
-      // Multi-rack mode: export all racks
-      const racksToExport = layoutStore.racks;
+      // Filter racks based on user selection, or use all if none selected
+      const racksToExport = options.selectedRackIds?.length
+        ? layoutStore.racks.filter((r) =>
+            options.selectedRackIds!.includes(r.id),
+          )
+        : layoutStore.racks;
 
       if (racksToExport.length === 0) {
         toastStore.showToast("No rack to export", "warning");
