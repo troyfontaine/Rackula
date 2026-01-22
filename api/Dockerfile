@@ -1,6 +1,6 @@
 # Rackula API Sidecar
 # Tiny Bun-based API for layout persistence
-FROM oven/bun:1.1.45-alpine AS base
+FROM oven/bun:1.3-alpine AS base
 
 # Install dependencies
 FROM base AS deps
