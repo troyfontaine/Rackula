@@ -191,7 +191,7 @@
     <header class="start-header">
       <LogoLockup size={48} showcase={true} alwaysShowTitle={true} />
       <span class="version">v{VERSION}</span>
-      <p class="subtitle">Rack Layout Designer for Homelabbers</p>
+      <p class="subtitle">Drag and drop rack visualizer</p>
     </header>
 
     <div class="actions">
