@@ -87,4 +87,4 @@ services:
         max-file: "2"
 
     expose:
-      - "3001"
+      - "${PORT:-3001}"
