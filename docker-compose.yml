@@ -83,7 +83,7 @@ services:
       - /tmp:size=5M
 
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3001/health"]
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:${PORT:-3001}/health"]
       interval: 30s
       timeout: 10s
       start_period: 5s
@@ -96,4 +96,4 @@ services:
         max-file: "2"
 
     expose:
-      - "3001"
+      - "${PORT:-3001}"
