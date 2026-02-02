@@ -170,6 +170,7 @@ jobs:
         with:
           sparse-checkout: |
             docker-compose.yml
+          sparse-checkout-cone-mode: false
 
       - name: Sync docker-compose.yml to prod
         run: |
